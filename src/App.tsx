@@ -5,23 +5,33 @@ const App = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [data, setData] = useState<any>([]);
   const [currentData, setCurrentData] = useState<any>();
+  const [loading, setLoading] = useState(true);
 
   const imgRefs = useRef<Array<HTMLImageElement | null>>([]);
 
   useEffect(() => {
-    fetch(
-      "https://bestinbd.com/projects/web/task/api/get-req-data/sections?type=slug&value=home&get_section=yes&image=yes&post=yes&file=yes&gallery=yes"
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setData(data.featured_project);
-        setCurrentData(data.featured_project[0]);
-      })
-      .catch((err) => console.log(err));
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          "https://bestinbd.com/projects/web/task/api/get-req-data/sections?type=slug&value=home&get_section=yes&image=yes&post=yes&file=yes&gallery=yes"
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const result = await response.json();
+        setData(result.featured_project);
+        setCurrentData(result.featured_project[0]);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   useEffect(() => {
-    // Initialize imgRefs with refs for each image
     imgRefs.current = imgRefs.current.slice(0, data.length);
   }, [data]);
 
@@ -37,14 +47,14 @@ const App = () => {
     setCurrentData(data[prevIndex]);
   };
 
-  console.log(currentData);
-
-  // Create animated style for the slide container
   const slideProps = useSpring({
     transform: `translateX(-${imgRefs.current
       .slice(0, currentSlide)
       .reduce((acc, ref) => acc + (ref?.clientWidth || 0) + 30, 0)}px)`,
   });
+
+  if (loading) return <p>Loading...</p>;
+  if (!data || data.length === 0) return <p>No data found</p>;
 
   return (
     <div className="relative overflow-hidden">
